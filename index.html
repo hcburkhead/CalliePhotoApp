@@ -54,20 +54,26 @@
     let currentIndex = 0;
 
     // Load images from GAS backend
-    fetch('https://script.google.com/macros/s/AKfycbxGVq5oaDlo2Tkq9AuGb4GXT6ycrWifvfxNNk6YLPxHMOpx4BFOZFCBmi0lLnIQ_8CK/exec')
+    fetch('https://script.google.com/macros/s/AKfycbxGVq5oaDlo2Tkq9AuGb4GXT6ycrWifvfxNNk6YLPxHMOpx4BFOZFCBmi0lLnIQ_8CK/exec', {
       method: 'GET',
       headers: {
         'Content-Type': 'text/plain;charset=utf-8'
       }
-    })  
-      .then(res => res.json())
-      .then(data => {
-        // Load Images
-        initializeSlider(data);
-    });
+    })
+    .then(res => res.text())
+    .then(text => {
+      console.log('Raw response:', text);
+      const data = JSON.parse(text);
+      images = data;
+      if (images.length > 0) {
+        showSlide();
+        createDots();
+      }
+    })
+    .catch(err => console.error('Fetch error:', err));
 
     function showSlide() {
-      document.getElementById('photo').src = images[currentIndex].baseUrl;
+      document.getElementById('photo').src = images[currentIndex].url;
       updateDots();
     }
 
@@ -83,7 +89,9 @@
 
     // Touch handling
     let startX = 0;
-    document.body.addEventListener('touchstart', e => startX = e.touches[0].clientX);
+    document.body.addEventListener('touchstart', e => {
+      startX = e.touches[0].clientX;
+    });
     document.body.addEventListener('touchend', e => {
       const diff = startX - e.changedTouches[0].clientX;
       if (diff > 50) next();
@@ -108,4 +116,4 @@
     }
   </script>
 </body>
-</html>   
+</html>
