@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Immich Digital Photo Frame</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      overflow: hidden;
+      background: #000;
+      touch-action: pan-y;
+      font-family: Arial, sans-serif;
+    }
+    .slide {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .slide img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    .dots {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 10;
+    }
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.4);
+      cursor: pointer;
+    }
+    .dot.active { background: white; }
+  </style>
+</head>
+<body>
+  <div class="slide">
+    <img id="photo" src="" alt="Loading..." />
+  </div>
+  <div class="dots" id="dots"></div>
+
+  <script>
+    let images = [];
+    let currentIndex = 0;
+
+    // Configure Immich
+    const IMMICH_URL = 'http://100.x.y.z:2283'; // Your Tailscale Immich IP
+    const ALBUM_ID = 'your-album-id'; // Get from Immich album URL
+    const API_KEY = 'your-api-key'; // Immich Settings > API Keys
+
+    // Fetch album assets from Immich
+    fetch(`${IMMICH_URL}/api/album/${ALBUM_ID}/assets`, {
+      headers: { 'x-api-key': API_KEY }
+    })
+    .then(res => res.text())
+    .then(text => {
+      console.log('Raw response:', text);
+      if (text.includes('Unauthorized')) {
+        console.error('Immich API key invalid or missing');
+        return;
+      }
+      const data = JSON.parse(text);
+      images = data.items.map(item => 
+        `${IMMICH_URL}/api/asset/${item.assetId}/thumbnail?size=original`
+      );
+      if (images.length > 0) {
+        showSlide();
+        createDots();
+      }
+    })
+    .catch(err => console.error('Fetch error:', err));
+
+    function showSlide() {
+      document.getElementById('photo').src = images[currentIndex];
+      updateDots();
+    }
+
+    function next() {
+      currentIndex = (currentIndex + 1) % images.length;
+      showSlide();
+    }
+
+    function prev() {
+      currentIndex = (currentIndex - 1 + images.length) % images.length;
+      showSlide();
+    }
+
+    // Touch handling
+    let startX = 0;
+    document.body.addEventListener('touchstart', e => {
+      startX = e.touches[0].clientX;
+    });
+    document.body.addEventListener('touchend', e => {
+      const diff = startX - e.changedTouches[0].clientX;
+      if (diff > 50) next();
+      if (diff < -50) prev();
+    });
+
+    // Dot indicators
+    function createDots() {
+      const dotsContainer = document.getElementById('dots');
+      images.forEach((_, i) => {
+        const dot = document.createElement('div');
+        dot.classList.add('dot');
+        dot.addEventListener('click', () => { currentIndex = i; showSlide(); });
+        dotsContainer.appendChild(dot);
+      });
+    }
+
+    function updateDots() {
+      document.querySelectorAll('.dot').forEach((dot, i) => {
+        dot.classList.toggle('active', i === currentIndex);
+      });
+    }
+  </script>
+</body>
+</html>   
