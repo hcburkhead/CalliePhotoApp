@@ -55,14 +55,16 @@
 
     // Load images from GAS backend
     fetch('https://script.google.com/macros/s/AKfycbxGVq5oaDlo2Tkq9AuGb4GXT6ycrWifvfxNNk6YLPxHMOpx4BFOZFCBmi0lLnIQ_8CK/exec')
+      method: 'GET',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      }
+    })  
       .then(res => res.json())
       .then(data => {
-        images = data;
-        if (images.length > 0) {
-          showSlide();
-          createDots();
-        }
-      });
+        // Load Images
+        initializeSlider(data);
+    });
 
     function showSlide() {
       document.getElementById('photo').src = images[currentIndex].baseUrl;
